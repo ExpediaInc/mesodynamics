@@ -1,0 +1,234 @@
+{
+  "paragraphs": [
+    {
+      "text": "import spark.implicits._\nimport org.apache.spark.sql.DataFrame\nimport org.apache.spark.sql.functions._\nimport org.apache.spark.sql.types._\nimport org.apache.spark.sql.expressions.Window\nimport scala.collection.mutable.ListBuffer\n\nval projectPATH \u003d \"s3://big-data-analytics-scratch-prod/team_ewe_data_science/sean/floating-travel-ads\"",
+      "user": "sdownes@expedia.com",
+      "dateUpdated": "Aug 16, 2017 9:56:15 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1502469789843_-1217749853",
+      "id": "20170811-164309_1764441112",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\nimport spark.implicits._\n\nimport org.apache.spark.sql.DataFrame\n\nimport org.apache.spark.sql.functions._\n\nimport org.apache.spark.sql.types._\n\nimport org.apache.spark.sql.expressions.Window\n\nimport scala.collection.mutable.ListBuffer\n\nprojectPATH: String \u003d s3://big-data-analytics-scratch-prod/team_ewe_data_science/sean/floating-travel-ads\n"
+      },
+      "dateCreated": "Aug 11, 2017 4:43:09 PM",
+      "dateStarted": "Aug 16, 2017 9:56:15 PM",
+      "dateFinished": "Aug 16, 2017 9:56:17 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "val june \u003d spark.read.option(\"header\",\"true\").csv(projectPATH + \"/\" + \"june-modified.csv\").drop(\"_c0\")\nval juneHotels \u003d june.groupBy(\"hotelId\").count().select(\"hotelId\").withColumnRenamed(\"hotelId\",\"hotel_id\")",
+      "user": "sdownes@expedia.com",
+      "dateUpdated": "Aug 16, 2017 9:56:15 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "runtimeInfos": {
+        "jobUrl": {
+          "propertyName": "jobUrl",
+          "label": "JOB UI",
+          "tooltip": "View in Spark web UI",
+          "group": "spark",
+          "values": [
+            "https://api.qubole.com/cluster-proxy?encodedUrl\u003dhttp%3A%2F%2F10.23.2.75%3A8088%2Fproxy%2Fapplication_1502812111203_0028/jobs/job?spark\u003dtrue\u0026id\u003d10",
+            "https://api.qubole.com/cluster-proxy?encodedUrl\u003dhttp%3A%2F%2F10.23.2.75%3A8088%2Fproxy%2Fapplication_1502812111203_0028/jobs/job?spark\u003dtrue\u0026id\u003d11"
+          ],
+          "interpreterSettingId": "2BZ7NJS43223991476135350234"
+        }
+      },
+      "jobName": "paragraph_1502469918217_-258739411",
+      "id": "20170811-164518_709201846",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\njune: org.apache.spark.sql.DataFrame \u003d [hotelId: string, advertiserId: string ... 17 more fields]\n\njuneHotels: org.apache.spark.sql.DataFrame \u003d [hotel_id: string]\n"
+      },
+      "dateCreated": "Aug 11, 2017 4:45:18 PM",
+      "dateStarted": "Aug 16, 2017 9:56:16 PM",
+      "dateFinished": "Aug 16, 2017 9:56:19 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "\nvar clicksOmnitureJune \u003d spark.sql(\"SELECT hit_time_gmt as click_time_gmt , site_name , local_dt , prop4 as infosite_destination_id , SPLIT(SPLIT(product_list,\u0027:\u0027)[1],\u0027;\u0027)[0] as hotel_id , prop5 AS checkin , prop6 AS checkout , prop12 as guid FROM dm.omniture_hit WHERE local_dt \u003d \u00272017-06-01\u0027 AND pagename \u003d \u0027PAGE.HOTELS.INFOSITE.INFORMATION\u0027\")\n\nclicksOmnitureJune \u003d clicksOmnitureJune.join(broadcast(juneHotels),\"hotel_id\")\n\nvar impressionsOmnitureJune \u003d spark.sql(\"WITH impressions_raw AS (SELECT hit_time_gmt , site_name , prop5 AS checkin, prop6 AS checkout , local_dt , prop4 AS search_destination_id , prop12 AS guid , EXPLODE(SPLIT(product_list,\u0027;HOTEL:\u0027)) AS hotel_string FROM dm.omniture_hit WHERE local_dt \u003d \u00272017-06-01\u0027 AND pagename \u003d \u0027PAGE.HOTEL-SEARCH\u0027) SELECT hit_time_gmt , site_name, checkin , checkout , local_dt , search_destination_id , guid , SPLIT(hotel_string,\u0027;\u0027)[0] as hotel_id , SPLIT(SPLIT(SPLIT(hotel_string,\u0027EVAR39\u003d\u0027)[1],\u0027EVAR30\u0027)[0],\u0027-\u0027)[0] as sort_position_raw , SPLIT(SPLIT(SPLIT(hotel_string,\u0027EVAR39\u003d\u0027)[1],\u0027EVAR30\u0027)[0],\u0027-\u0027)[1] as sort_modifier_raw  FROM impressions_raw WHERE SPLIT(hotel_string,\u0027EVAR39\u003d\u0027)[1] IS NOT NULL \") \n\nimpressionsOmnitureJune \u003d impressionsOmnitureJune.withColumn(\"sort_position\",split($\"sort_position_raw\",\"\\\\|\")(0)).drop(\"sort_position_raw\").withColumn(\"sort_modifier\",split($\"sort_modifier_raw\",\"\\\\|\")(0)).drop(\"sort_modifier_raw\")\nimpressionsOmnitureJune \u003d impressionsOmnitureJune.join(broadcast(juneHotels),\"hotel_id\")\n\nvar transactions \u003d spark.sql(\"SELECT site_name , local_dt , property_id as hotel_id , COUNT(*) as transactions, SUM(units) as room_nights , SUM(gross_bookings_usd) as gbv FROM dm.omniture_transactions WHERE product_ln_name \u003d \u0027HOTEL\u0027 AND local_dt \u003d \u00272017-06-01\u0027 GROUP BY site_name , local_dt , property_id\")\n\ntransactions \u003d transactions.join(broadcast(juneHotels),\"hotel_id\")\n\n",
+      "user": "sdownes@expedia.com",
+      "dateUpdated": "Aug 16, 2017 9:56:15 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "hotelId",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "hotelId",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1502469988405_-304838115",
+      "id": "20170811-164628_180655882",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\nclicksOmnitureJune: org.apache.spark.sql.DataFrame \u003d [click_time_gmt: int, site_name: string ... 6 more fields]\n\nclicksOmnitureJune: org.apache.spark.sql.DataFrame \u003d [hotel_id: string, click_time_gmt: int ... 6 more fields]\n\nimpressionsOmnitureJune: org.apache.spark.sql.DataFrame \u003d [hit_time_gmt: int, site_name: string ... 8 more fields]\n\nimpressionsOmnitureJune: org.apache.spark.sql.DataFrame \u003d [hit_time_gmt: int, site_name: string ... 8 more fields]\n\nimpressionsOmnitureJune: org.apache.spark.sql.DataFrame \u003d [hotel_id: string, hit_time_gmt: int ... 8 more fields]\n\ntransactions: org.apache.spark.sql.DataFrame \u003d [site_name: string, local_dt: string ... 4 more fields]\n\ntransactions: org.apache.spark.sql.DataFrame \u003d [hotel_id: string, site_name: string ... 4 more fields]\n"
+      },
+      "dateCreated": "Aug 11, 2017 4:46:28 PM",
+      "dateStarted": "Aug 16, 2017 9:56:18 PM",
+      "dateFinished": "Aug 16, 2017 9:56:21 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "text": "// Aggregate Impressions\nval impsByHotels \u003d impressionsOmnitureJune.withColumn(\"isAd\",$\"sort_modifier\".isNotNull \u0026\u0026 $\"sort_modifier\"\u003d\u003d\u003d\"AD\").groupBy(\"isAd\",\"hotel_id\",\"search_destination_id\",\"local_dt\").count()\nval impsByRegion \u003d impsByHotels.groupBy(\"isAd\",\"search_destination_id\",\"local_dt\").agg(sum(\"count\").as(\"region_impressions\"),count(\"hotel_id\").as(\"hotel_count\"))\nval impsInTotal \u003d impsByHotels.join(impsByRegion,Seq(\"isAd\",\"search_destination_id\",\"local_dt\")).withColumnRenamed(\"count\",\"hotel_impressions\").withColumn(\"impression_ratio\",$\"hotel_impressions\"/$\"region_impressions\")\n\n// Impressions at Position\nval impsByHotelsAtP \u003d impressionsOmnitureJune.withColumn(\"isAd\",$\"sort_modifier\".isNotNull \u0026\u0026 $\"sort_modifier\"\u003d\u003d\u003d\"AD\").groupBy(\"isAd\",\"sort_position\",\"hotel_id\",\"search_destination_id\",\"local_dt\").count()\nval impsByRegionAtP \u003d impsByHotelsAtP.groupBy(\"isAd\",\"sort_position\",\"search_destination_id\",\"local_dt\").agg(sum(\"count\").as(\"region_impressions\"),count(\"hotel_id\").as(\"hotel_counts\"))\nval impsInTotalAtP \u003d impsByHotelsAtP.join(impsByRegionAtP,Seq(\"isAd\",\"sort_position\",\"search_destination_id\",\"local_dt\")).withColumnRenamed(\"count\",\"hotel_impressions\").withColumn(\"impression_ratio\",$\"hotel_impressions\"/$\"region_impressions\")\n\n// Clicks\n\nvar clicksByHotels  \u003d clicksOmnitureJune.groupBy(\"hotel_id\",\"infosite_destination_id\",\"local_dt\").count()\nvar clicksByRegion \u003d clicksByHotels.groupBy(\"infosite_destination_id\",\"local_dt\").agg(sum(\"count\").as(\"region_clicks\"),count(\"hotel_id\").as(\"region_hotels\"))\nvar clicksInTotal \u003d clicksByRegion.join(clicksByHotels,Seq(\"infosite_destination_id\",\"local_dt\")).withColumnRenamed(\"count\",\"hotel_clicks\").where($\"infosite_destination_id\"\u003e0).orderBy(\"infosite_destination_id\").withColumn(\"click_ratio\",$\"hotel_clicks\"/$\"region_clicks\")\n",
+      "user": "sdownes@expedia.com",
+      "dateUpdated": "Aug 16, 2017 9:56:15 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [
+            {
+              "name": "isAd",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          ],
+          "values": [
+            {
+              "name": "sort_position",
+              "index": 1.0,
+              "aggr": "sum"
+            }
+          ],
+          "groups": [],
+          "scatter": {
+            "xAxis": {
+              "name": "isAd",
+              "index": 0.0,
+              "aggr": "sum"
+            }
+          }
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1502912735674_-1292248380",
+      "id": "20170816-194535_1931378671",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": "\nimpsByHotels: org.apache.spark.sql.DataFrame \u003d [isAd: boolean, hotel_id: string ... 3 more fields]\n\nimpsByRegion: org.apache.spark.sql.DataFrame \u003d [isAd: boolean, search_destination_id: string ... 3 more fields]\n\nimpsInTotal: org.apache.spark.sql.DataFrame \u003d [isAd: boolean, search_destination_id: string ... 6 more fields]\n\nimpsByHotelsAtP: org.apache.spark.sql.DataFrame \u003d [isAd: boolean, sort_position: string ... 4 more fields]\n\nimpsByRegionAtP: org.apache.spark.sql.DataFrame \u003d [isAd: boolean, sort_position: string ... 4 more fields]\n\nimpsInTotalAtP: org.apache.spark.sql.DataFrame \u003d [isAd: boolean, sort_position: string ... 7 more fields]\n\nclicksByHotels: org.apache.spark.sql.DataFrame \u003d [hotel_id: string, infosite_destination_id: string ... 2 more fields]\n\nclicksByRegion: org.apache.spark.sql.DataFrame \u003d [infosite_destination_id: string, local_dt: string ... 2 more fields]\n\nclicksInTotal: org.apache.spark.sql.DataFrame \u003d [infosite_destination_id: string, local_dt: string ... 5 more fields]\n"
+      },
+      "dateCreated": "Aug 16, 2017 7:45:35 PM",
+      "dateStarted": "Aug 16, 2017 9:56:19 PM",
+      "dateFinished": "Aug 16, 2017 9:56:24 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    },
+    {
+      "user": "sdownes@expedia.com",
+      "dateUpdated": "Aug 16, 2017 9:56:15 PM",
+      "config": {
+        "colWidth": 12.0,
+        "graph": {
+          "mode": "table",
+          "height": 300.0,
+          "optionOpen": false,
+          "keys": [],
+          "values": [],
+          "groups": [],
+          "scatter": {}
+        },
+        "enabled": true,
+        "editorMode": "ace/mode/scala"
+      },
+      "settings": {
+        "params": {},
+        "forms": {}
+      },
+      "jobName": "paragraph_1502916618219_-494296727",
+      "id": "20170816-205018_1128171455",
+      "result": {
+        "code": "SUCCESS",
+        "type": "TEXT",
+        "msg": ""
+      },
+      "dateCreated": "Aug 16, 2017 8:50:18 PM",
+      "dateStarted": "Aug 16, 2017 9:56:22 PM",
+      "dateFinished": "Aug 16, 2017 9:56:24 PM",
+      "status": "FINISHED",
+      "progressUpdateIntervalMs": 500
+    }
+  ],
+  "name": "BiddingScores",
+  "id": "B5MDZYW7JT1502469789",
+  "angularObjects": {
+    "2C179DR6U223991475624245522:shared_process": [],
+    "2BZDTKMRN223991475624245519:shared_process": [],
+    "2BX25XC76223991475624245516:shared_process": [],
+    "2BZ7NJS43223991476135350234:shared_process": []
+  },
+  "config": {
+    "isDashboard": false
+  },
+  "info": {},
+  "source": "FCN"
+}
